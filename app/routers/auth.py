@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from sqlalchemy import select
 from app.db.models import User
+from app.dependencies.dependencies import get_current_user_id
+from typing import Annotated
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
@@ -23,3 +25,22 @@ def reg_usr(payload: UserRegister, db:Session = Depends(get_db)):
     response_model=TokenResponse)
 def lgn_usr(payload:UserLogin,db:Session  = Depends(get_db)):
     return login_user(payload,db)
+
+@router.get("/me")
+def get_me(
+    user_id:Annotated[str,Depends(get_current_user_id)],
+    db:Session = Depends(get_db)
+):
+    user = db.get(User,user_id)
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    return{
+        "user_id":str(user.user_id),
+        "username":str(user.username),
+        "email":str(user.email)
+    }
